@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Edit Student - SmartAttend
+{% endblock %}
+
+
+{% block content %}
+
+<nav class="navbar navbar-expand-lg bg-dark navbar-dark">
+
+    <div class="container-fluid">
+
+        <a
+            class="navbar-brand fw-bold"
+            href="{{ url_for('dashboard.dashboard') }}"
+        >
+            SmartAttend
+        </a>
+
+        <div class="d-flex align-items-center">
+
+            <span class="text-light me-3">
+                Welcome, {{ current_user.username }}
+            </span>
+
+            <a
+                href="{{ url_for('auth.logout') }}"
+                class="btn btn-outline-light btn-sm"
+            >
+                Logout
+            </a>
+
+        </div>
+
+    </div>
+
+</nav>
+
+
+<div class="container">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-8">
+
+            <div class="dashboard-content">
+
+                <div class="mb-4">
+
+                    <h1 class="dashboard-title">
+                        Edit Student
+                    </h1>
+
+                    <p class="text-muted">
+                        Update information for
+                        <strong>{{ student.name }}</strong>.
+                    </p>
+
+                </div>
+
+
+                {% with messages = get_flashed_messages(
+                    with_categories=true
+                ) %}
+
+                    {% if messages %}
+
+                        {% for category, message in messages %}
+
+                            <div class="alert alert-{{ category }}">
+                                {{ message }}
+                            </div>
+
+                        {% endfor %}
+
+                    {% endif %}
+
+                {% endwith %}
+
+
+                <div class="dashboard-panel">
+
+                    <form method="POST">
+
+                        {{ form.hidden_tag() }}
+
+
+                        <div class="mb-3">
+
+                            {{ form.roll_number.label(
+                                class="form-label"
+                            ) }}
+
+                            {{ form.roll_number(
+                                class="form-control"
+                            ) }}
+
+                            {% for error in form.roll_number.errors %}
+
+                                <div class="text-danger small">
+                                    {{ error }}
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+
+                        <div class="mb-3">
+
+                            {{ form.name.label(
+                                class="form-label"
+                            ) }}
+
+                            {{ form.name(
+                                class="form-control"
+                            ) }}
+
+                            {% for error in form.name.errors %}
+
+                                <div class="text-danger small">
+                                    {{ error }}
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+
+                        <div class="mb-3">
+
+                            {{ form.email.label(
+                                class="form-label"
+                            ) }}
+
+                            {{ form.email(
+                                class="form-control"
+                            ) }}
+
+                            {% for error in form.email.errors %}
+
+                                <div class="text-danger small">
+                                    {{ error }}
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+
+                        <div class="mb-3">
+
+                            {{ form.phone.label(
+                                class="form-label"
+                            ) }}
+
+                            {{ form.phone(
+                                class="form-control"
+                            ) }}
+
+                        </div>
+
+
+                        <div class="mb-3">
+
+                            {{ form.department.label(
+                                class="form-label"
+                            ) }}
+
+                            {{ form.department(
+                                class="form-control"
+                            ) }}
+
+                        </div>
+
+
+                        <div class="mb-4">
+
+                            {{ form.semester.label(
+                                class="form-label"
+                            ) }}
+
+                            {{ form.semester(
+                                class="form-select"
+                            ) }}
+
+                        </div>
+
+
+                        <div class="d-flex gap-2">
+
+                            {{ form.submit(
+                                class="btn btn-primary"
+                            ) }}
+
+                            <a
+                                href="{{ url_for(
+                                    'students.student_detail',
+                                    student_id=student.id
+                                ) }}"
+                                class="btn btn-secondary"
+                            >
+                                Cancel
+                            </a>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

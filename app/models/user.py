@@ -1,11 +1,12 @@
 from datetime import datetime
 
+from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db
 
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     __tablename__ = "users"
 
     id = db.Column(
@@ -42,7 +43,7 @@ class User(db.Model):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        """Check a password against the stored hash."""
+        """Check a password against the stored password hash."""
         return check_password_hash(
             self.password_hash,
             password

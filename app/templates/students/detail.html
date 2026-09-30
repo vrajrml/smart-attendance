@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}
+    {{ student.name }} - SmartAttend
+{% endblock %}
+
+
+{% block content %}
+
+<nav class="navbar navbar-expand-lg bg-dark navbar-dark">
+
+    <div class="container-fluid">
+
+        <a
+            class="navbar-brand fw-bold"
+            href="{{ url_for('dashboard.dashboard') }}"
+        >
+            SmartAttend
+        </a>
+
+        <div class="d-flex align-items-center">
+
+            <span class="text-light me-3">
+                Welcome, {{ current_user.username }}
+            </span>
+
+            <a
+                href="{{ url_for('auth.logout') }}"
+                class="btn btn-outline-light btn-sm"
+            >
+                Logout
+            </a>
+
+        </div>
+
+    </div>
+
+</nav>
+
+
+<div class="container">
+
+    <div class="dashboard-content">
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+
+            <div>
+
+                <h1 class="dashboard-title">
+                    Student Details
+                </h1>
+
+                <p class="text-muted">
+                    View student information
+                </p>
+
+            </div>
+
+            <div>
+
+                <a
+                    href="{{ url_for(
+                        'students.edit_student',
+                        student_id=student.id
+                    ) }}"
+                    class="btn btn-primary"
+                >
+                    Edit Student
+                </a>
+
+                <a
+                    href="{{ url_for(
+                        'students.list_students'
+                    ) }}"
+                    class="btn btn-secondary"
+                >
+                    Back
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <div class="dashboard-panel">
+
+            <div class="row">
+
+                <div class="col-md-6 mb-4">
+
+                    <small class="text-muted">
+                        Roll Number
+                    </small>
+
+                    <h4>
+                        {{ student.roll_number }}
+                    </h4>
+
+                </div>
+
+
+                <div class="col-md-6 mb-4">
+
+                    <small class="text-muted">
+                        Full Name
+                    </small>
+
+                    <h4>
+                        {{ student.name }}
+                    </h4>
+
+                </div>
+
+
+                <div class="col-md-6 mb-4">
+
+                    <small class="text-muted">
+                        Email
+                    </small>
+
+                    <p>
+                        {{ student.email or "Not provided" }}
+                    </p>
+
+                </div>
+
+
+                <div class="col-md-6 mb-4">
+
+                    <small class="text-muted">
+                        Phone
+                    </small>
+
+                    <p>
+                        {{ student.phone or "Not provided" }}
+                    </p>
+
+                </div>
+
+
+                <div class="col-md-6 mb-4">
+
+                    <small class="text-muted">
+                        Department
+                    </small>
+
+                    <p>
+                        {{ student.department or "Not provided" }}
+                    </p>
+
+                </div>
+
+
+                <div class="col-md-6 mb-4">
+
+                    <small class="text-muted">
+                        Semester
+                    </small>
+
+                    <p>
+                        {{ student.semester or "Not provided" }}
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Add Student - SmartAttend
+{% endblock %}
+
+
+{% block content %}
+
+<nav class="navbar navbar-expand-lg bg-dark navbar-dark">
+
+    <div class="container-fluid">
+
+        <a
+            class="navbar-brand fw-bold"
+            href="{{ url_for('dashboard.dashboard') }}"
+        >
+            SmartAttend
+        </a>
+
+        <div class="d-flex align-items-center">
+
+            <span class="text-light me-3">
+                Welcome, {{ current_user.username }}
+            </span>
+
+            <a
+                href="{{ url_for('auth.logout') }}"
+                class="btn btn-outline-light btn-sm"
+            >
+                Logout
+            </a>
+
+        </div>
+
+    </div>
+
+</nav>
+
+
+<div class="container">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-8">
+
+            <div class="dashboard-content">
+
+                <div class="mb-4">
+
+                    <h1 class="dashboard-title">
+                        Add Student
+                    </h1>
+
+                    <p class="text-muted">
+                        Register a new student in SmartAttend.
+                    </p>
+
+                </div>
+
+
+                <div class="dashboard-panel">
+
+                    <form method="POST">
+
+                        {{ form.hidden_tag() }}
+
+
+                        <!-- Roll Number -->
+
+                        <div class="mb-3">
+
+                            {{ form.roll_number.label(
+                                class="form-label"
+                            ) }}
+
+                            {{ form.roll_number(
+                                class="form-control",
+                                placeholder="e.g. MCA001"
+                            ) }}
+
+                            {% for error in form.roll_number.errors %}
+
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+
+                        <!-- Full Name -->
+
+                        <div class="mb-3">
+
+                            {{ form.name.label(
+                                class="form-label"
+                            ) }}
+
+                            {{ form.name(
+                                class="form-control",
+                                placeholder="Enter student's full name"
+                            ) }}
+
+                            {% for error in form.name.errors %}
+
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+
+                        <!-- Email -->
+
+                        <div class="mb-3">
+
+                            {{ form.email.label(
+                                class="form-label"
+                            ) }}
+
+                            {{ form.email(
+                                class="form-control",
+                                placeholder="student@example.com"
+                            ) }}
+
+                            {% for error in form.email.errors %}
+
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+
+                        <!-- Phone -->
+
+                        <div class="mb-3">
+
+                            {{ form.phone.label(
+                                class="form-label"
+                            ) }}
+
+                            {{ form.phone(
+                                class="form-control",
+                                placeholder="Enter phone number"
+                            ) }}
+
+                            {% for error in form.phone.errors %}
+
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+
+                        <!-- Department -->
+
+                        <div class="mb-3">
+
+                            {{ form.department.label(
+                                class="form-label"
+                            ) }}
+
+                            {{ form.department(
+                                class="form-control",
+                                placeholder="e.g. MCA"
+                            ) }}
+
+                            {% for error in form.department.errors %}
+
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+
+                        <!-- Semester -->
+
+                        <div class="mb-4">
+
+                            {{ form.semester.label(
+                                class="form-label"
+                            ) }}
+
+                            {{ form.semester(
+                                class="form-select"
+                            ) }}
+
+                            {% for error in form.semester.errors %}
+
+                                <div class="text-danger small mt-1">
+                                    {{ error }}
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+
+                        <!-- Buttons -->
+
+                        <div class="d-flex gap-2">
+
+                            {{ form.submit(
+                                class="btn btn-primary"
+                            ) }}
+
+                            <a
+                                href="{{ url_for(
+                                    'students.list_students'
+                                ) }}"
+                                class="btn btn-secondary"
+                            >
+                                Cancel
+                            </a>
+
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

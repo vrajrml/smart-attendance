@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+    Dashboard - SmartAttend
+{% endblock %}
+
+
+{% block content %}
+
+<nav class="navbar navbar-expand-lg bg-dark navbar-dark">
+
+    <div class="container-fluid">
+
+        <a
+            class="navbar-brand fw-bold"
+            href="{{ url_for('dashboard.dashboard') }}"
+        >
+            SmartAttend
+        </a>
+
+
+        <div class="d-flex align-items-center">
+
+            <span class="text-light me-3">
+                Welcome, {{ current_user.username }}
+            </span>
+
+            <a
+                href="{{ url_for('auth.logout') }}"
+                class="btn btn-outline-light btn-sm"
+            >
+                Logout
+            </a>
+
+        </div>
+
+    </div>
+
+</nav>
+
+
+<div class="container-fluid">
+
+    <div class="row">
+
+        <!-- Sidebar -->
+
+        <aside class="col-md-3 col-lg-2 sidebar">
+
+            <div class="sidebar-title">
+                MENU
+            </div>
+
+            <a
+                href="{{ url_for('dashboard.dashboard') }}"
+                class="sidebar-link active"
+            >
+                Dashboard
+            </a>
+
+            <a
+                href="#"
+                class="sidebar-link"
+            >
+                Students
+            </a>
+
+            <a
+                href="#"
+                class="sidebar-link"
+            >
+                Subjects
+            </a>
+
+            <a
+                href="#"
+                class="sidebar-link"
+            >
+                Attendance
+            </a>
+
+            <a
+                href="#"
+                class="sidebar-link"
+            >
+                Reports
+            </a>
+
+        </aside>
+
+
+        <!-- Main content -->
+
+        <main class="col-md-9 col-lg-10 dashboard-content">
+
+            <div class="mb-4">
+
+                <h1 class="dashboard-title">
+                    Dashboard
+                </h1>
+
+                <p class="text-muted">
+                    Smart Attendance Management System
+                </p>
+
+            </div>
+
+
+            <div class="row g-4">
+
+                <!-- Students -->
+
+                <div class="col-md-6 col-xl-3">
+
+                    <div class="stat-card">
+
+                        <div class="stat-label">
+                            TOTAL STUDENTS
+                        </div>
+
+                        <div class="stat-value">
+                            {{ student_count }}
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Present -->
+
+                <div class="col-md-6 col-xl-3">
+
+                    <div class="stat-card">
+
+                        <div class="stat-label">
+                            PRESENT TODAY
+                        </div>
+
+                        <div class="stat-value">
+                            0
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Absent -->
+
+                <div class="col-md-6 col-xl-3">
+
+                    <div class="stat-card">
+
+                        <div class="stat-label">
+                            ABSENT TODAY
+                        </div>
+
+                        <div class="stat-value">
+                            0
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- Attendance -->
+
+                <div class="col-md-6 col-xl-3">
+
+                    <div class="stat-card">
+
+                        <div class="stat-label">
+                            ATTENDANCE RATE
+                        </div>
+
+                        <div class="stat-value">
+                            0%
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="dashboard-panel mt-4">
+
+                <h3>
+                    Welcome to SmartAttend
+                </h3>
+
+                <p class="text-muted mb-0">
+                    Your attendance management system is
+                    ready to be configured.
+                </p>
+
+            </div>
+
+        </main>
+
+    </div>
+
+</div>
+
+{% endblock %}
