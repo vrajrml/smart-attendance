@@ -1,3 +1,5 @@
+
+
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text
@@ -13,11 +15,14 @@ def create_app():
 
     app = Flask(__name__)
 
-    # Load configuration.
+    # Load application configuration.
     app.config.from_object(Config)
 
     # Initialize database.
     db.init_app(app)
+
+    # Import models so SQLAlchemy knows about them.
+    from app import models
 
     @app.route("/")
     def index():
@@ -49,3 +54,8 @@ def create_app():
         }
 
     return app
+
+
+
+
+
