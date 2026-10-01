@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="dashboard-page">
+
+    <div class="dashboard-page-header">
+        <div>
+            <h1>Attendance</h1>
+            <p>Select a class session to take attendance.</p>
+        </div>
+
+        <div>
+            <a href="{{ url_for('attendance.attendance_history') }}"
+               class="btn btn-secondary">
+                Attendance History
+            </a>
+        </div>
+    </div>
+
+    <div class="dashboard-panel">
+
+        <div class="dashboard-panel-header">
+            <div>
+                <h2>Class Sessions</h2>
+                <p>Choose a session to start or manage attendance.</p>
+            </div>
+        </div>
+
+        {% if sessions %}
+
+        <div class="table-responsive">
+
+            <table class="table dashboard-table">
+
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Session Status</th>
+                        <th>Attendance</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {% for session in sessions %}
+
+                    <tr>
+
+                        <td>
+                            <strong>
+                                {{ session.subject.subject_code }}
+                            </strong>
+
+                            <div class="text-muted small">
+                                {{ session.subject.subject_name }}
+                            </div>
+                        </td>
+
+                        <td>
+                            {{ session.session_date.strftime('%d %b %Y') }}
+                        </td>
+
+                        <td>
+                            {{ session.start_time.strftime('%I:%M %p') }}
+                            -
+                            {{ session.end_time.strftime('%I:%M %p') }}
+                        </td>
+
+                        <td>
+
+                            {% if session.session_status == "upcoming" %}
+
+                                <span class="badge bg-primary">
+                                    Upcoming
+                                </span>
+
+                            {% elif session.session_status == "ongoing" %}
+
+                                <span class="badge bg-success">
+                                    Ongoing
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge bg-danger">
+                                    Ended
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            {% if session.attendance_finalized %}
+
+                                <span class="badge bg-success">
+                                    Finalized
+                                </span>
+
+                            {% else %}
+
+                                <span class="badge bg-warning text-dark">
+                                    In Progress
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+
+                            {% if session.attendance_finalized %}
+
+                                <a href="{{ url_for(
+                                    'attendance.manage_attendance',
+                                    session_id=session.id
+                                ) }}"
+                                   class="btn btn-outline-primary btn-sm">
+                                    View
+                                </a>
+
+                            {% elif session.session_status == "upcoming" %}
+
+                                <a href="{{ url_for(
+                                    'attendance.manage_attendance',
+                                    session_id=session.id
+                                ) }}"
+                                   class="btn btn-outline-primary btn-sm">
+                                    View
+                                </a>
+
+                            {% elif session.session_status == "ongoing" %}
+
+                                <a href="{{ url_for(
+                                    'attendance.attendance_scanner',
+                                    session_id=session.id
+                                ) }}"
+                                   class="btn btn-primary btn-sm">
+                                    Face Scanner
+                                </a>
+
+                                <a href="{{ url_for(
+                                    'attendance.manage_attendance',
+                                    session_id=session.id
+                                ) }}"
+                                   class="btn btn-outline-primary btn-sm">
+                                    Manage
+                                </a>
+
+                            {% else %}
+
+                                <a href="{{ url_for(
+                                    'attendance.manage_attendance',
+                                    session_id=session.id
+                                ) }}"
+                                   class="btn btn-outline-primary btn-sm">
+                                    Manage
+                                </a>
+
+                            {% endif %}
+
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        {% else %}
+
+            <div class="empty-state">
+                <h3>No Class Sessions</h3>
+                <p>
+                    Create a class session before taking attendance.
+                </p>
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+{% endblock %}

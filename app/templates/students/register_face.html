@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Register Face - {{ student.name }} - SmartAttend
+{% endblock %}
+
+
+{% block content %}
+
+<nav class="navbar navbar-expand-lg bg-dark navbar-dark">
+
+    <div class="container-fluid">
+
+        <a
+            class="navbar-brand fw-bold"
+            href="{{ url_for('dashboard.dashboard') }}"
+        >
+            SmartAttend
+        </a>
+
+        <div class="d-flex align-items-center">
+
+            <span class="text-light me-3">
+                Welcome, {{ current_user.username }}
+            </span>
+
+            <a
+                href="{{ url_for('auth.logout') }}"
+                class="btn btn-outline-light btn-sm"
+            >
+                Logout
+            </a>
+
+        </div>
+
+    </div>
+
+</nav>
+
+
+<div class="container">
+
+    <div class="dashboard-content">
+
+        <div class="mb-4">
+
+            <h1 class="dashboard-title">
+                Register Face
+            </h1>
+
+            <p class="text-muted">
+                Register the face of
+                <strong>{{ student.name }}</strong>
+                ({{ student.roll_number }})
+            </p>
+
+        </div>
+
+
+        <div class="row justify-content-center">
+
+            <div class="col-lg-8">
+
+                <div class="dashboard-panel">
+
+                    <div class="text-center mb-4">
+
+                        <h4>
+                            Face Registration
+                        </h4>
+
+                        <p class="text-muted">
+                            Position your face inside the camera frame
+                            and make sure only one person is visible.
+                        </p>
+
+                    </div>
+
+
+                    <div
+                        class="position-relative mx-auto"
+                        style="max-width: 640px;"
+                    >
+
+                        <video
+                            id="camera"
+                            autoplay
+                            playsinline
+                            muted
+                            class="w-100 rounded border"
+                        ></video>
+
+                        <canvas
+                            id="canvas"
+                            style="display: none;"
+                        ></canvas>
+
+                    </div>
+
+
+                    <div
+                        id="status"
+                        class="alert alert-info mt-4 text-center"
+                    >
+                        Click "Start Camera" to begin.
+                    </div>
+
+
+                    <div class="text-center mt-4">
+
+                        <button
+                            type="button"
+                            id="startCamera"
+                            class="btn btn-primary me-2"
+                        >
+                            Start Camera
+                        </button>
+
+                        <button
+                            type="button"
+                            id="captureFace"
+                            class="btn btn-success me-2"
+                            disabled
+                        >
+                            Capture Face
+                        </button>
+
+                        <button
+                            type="button"
+                            id="stopCamera"
+                            class="btn btn-secondary"
+                            disabled
+                        >
+                            Stop Camera
+                        </button>
+
+                    </div>
+
+
+                    <div class="text-center mt-4">
+
+                        <a
+                            href="{{ url_for(
+                                'students.student_detail',
+                                student_id=student.id
+                            ) }}"
+                            class="btn btn-outline-secondary"
+                        >
+                            Back to Student
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const video = document.getElementById("camera");
+const canvas = document.getElementById("canvas");
+
+const startButton = document.getElementById("startCamera");
+const captureButton = document.getElementById("captureFace");
+const stopButton = document.getElementById("stopCamera");
+
+const statusBox = document.getElementById("status");
+
+let cameraStream = null;
+
+
+function setStatus(message, type = "info") {
+
+    statusBox.className =
+        `alert alert-${type} mt-4 text-center`;
+
+    statusBox.textContent = message;
+}
+
+
+async function startCamera() {
+
+    try {
+
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                width: {
+                    ideal: 1280
+                },
+                height: {
+                    ideal: 720
+                },
+                facingMode: "user"
+            },
+            audio: false
+        });
+
+        video.srcObject = cameraStream;
+
+        startButton.disabled = true;
+        captureButton.disabled = false;
+        stopButton.disabled = false;
+
+        setStatus(
+            "Camera is ready. Position your face clearly and click Capture Face.",
+            "success"
+        );
+
+    } catch (error) {
+
+        console.error(error);
+
+        setStatus(
+            "Could not access the camera. Please allow camera permission in your browser.",
+            "danger"
+        );
+    }
+}
+
+
+function stopCamera() {
+
+    if (cameraStream) {
+
+        cameraStream
+            .getTracks()
+            .forEach(
+                track => track.stop()
+            );
+
+        cameraStream = null;
+    }
+
+    video.srcObject = null;
+
+    startButton.disabled = false;
+    captureButton.disabled = true;
+    stopButton.disabled = true;
+
+    setStatus(
+        "Camera stopped.",
+        "secondary"
+    );
+}
+
+
+async function captureFace() {
+
+    if (!cameraStream) {
+
+        setStatus(
+            "Please start the camera first.",
+            "warning"
+        );
+
+        return;
+    }
+
+
+    if (
+        video.videoWidth === 0 ||
+        video.videoHeight === 0
+    ) {
+
+        setStatus(
+            "Camera is not ready yet. Please wait a moment.",
+            "warning"
+        );
+
+        return;
+    }
+
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+
+    const context = canvas.getContext("2d");
+
+    context.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    const imageData = canvas.toDataURL(
+        "image/jpeg",
+        0.90
+    );
+
+
+    captureButton.disabled = true;
+
+    setStatus(
+        "Processing your face...",
+        "info"
+    );
+
+
+    try {
+
+        const formData = new FormData();
+
+        formData.append(
+            "image",
+            imageData
+        );
+
+
+        const response = await fetch(
+            "{{ url_for(
+                'students.register_face',
+                student_id=student.id
+            ) }}",
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+
+        const result = await response.json();
+
+
+        if (result.success) {
+
+            setStatus(
+                result.message,
+                "success"
+            );
+
+            stopCamera();
+
+            captureButton.disabled = true;
+
+            setTimeout(
+                () => {
+
+                    window.location.href =
+                        "{{ url_for(
+                            'students.student_detail',
+                            student_id=student.id
+                        ) }}";
+
+                },
+                1500
+            );
+
+        } else {
+
+            setStatus(
+                result.message,
+                "danger"
+            );
+
+            captureButton.disabled = false;
+        }
+
+    } catch (error) {
+
+        console.error(error);
+
+        setStatus(
+            "Something went wrong while registering the face. Please try again.",
+            "danger"
+        );
+
+        captureButton.disabled = false;
+    }
+}
+
+
+startButton.addEventListener(
+    "click",
+    startCamera
+);
+
+
+captureButton.addEventListener(
+    "click",
+    captureFace
+);
+
+
+stopButton.addEventListener(
+    "click",
+    stopCamera
+);
+
+
+window.addEventListener(
+    "beforeunload",
+    () => {
+
+        if (cameraStream) {
+
+            cameraStream
+                .getTracks()
+                .forEach(
+                    track => track.stop()
+                );
+        }
+    }
+);
+
+</script>
+
+{% endblock %}

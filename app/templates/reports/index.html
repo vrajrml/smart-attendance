@@ -1,0 +1,1073 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Attendance Reports - SmartAttend
+{% endblock %}
+
+{% block content %}
+
+<!-- =====================================================
+     PAGE HEADER
+     ===================================================== -->
+
+<div class="dashboard-header">
+
+    <div>
+
+        <h1 class="dashboard-title">
+            Attendance Reports
+        </h1>
+
+        <p class="dashboard-subtitle">
+            Analyze attendance performance across students
+            and subjects.
+        </p>
+
+    </div>
+
+    <div class="d-flex gap-2">
+
+        <!-- EXCEL -->
+
+        <a
+            href="{{ url_for(
+                'reports.export_excel',
+                from_date=from_date,
+                to_date=to_date
+            ) }}"
+            class="btn btn-success"
+        >
+            Export Excel
+        </a>
+
+        <!-- PDF -->
+
+        <a
+            href="{{ url_for(
+                'reports.export_pdf',
+                from_date=from_date,
+                to_date=to_date
+            ) }}"
+            class="btn btn-danger"
+        >
+            Export PDF
+        </a>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     DATE FILTER
+     ===================================================== -->
+
+<div class="dashboard-panel mb-4">
+
+    <div class="dashboard-panel-header">
+
+        <div>
+
+            <h2 class="dashboard-panel-title">
+                Report Filters
+            </h2>
+
+            <p class="dashboard-panel-subtitle">
+                Select a date range for the report.
+            </p>
+
+        </div>
+
+    </div>
+
+    <form
+        method="GET"
+        action="{{ url_for('reports.reports') }}"
+    >
+
+        <div class="row g-3">
+
+            <div class="col-md-4">
+
+                <label
+                    for="from_date"
+                    class="form-label"
+                >
+                    From Date
+                </label>
+
+                <input
+                    type="date"
+                    id="from_date"
+                    name="from_date"
+                    class="form-control"
+                    value="{{ from_date }}"
+                >
+
+            </div>
+
+            <div class="col-md-4">
+
+                <label
+                    for="to_date"
+                    class="form-label"
+                >
+                    To Date
+                </label>
+
+                <input
+                    type="date"
+                    id="to_date"
+                    name="to_date"
+                    class="form-control"
+                    value="{{ to_date }}"
+                >
+
+            </div>
+
+            <div class="col-md-4 d-flex align-items-end">
+
+                <div class="d-flex gap-2">
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        Generate Report
+                    </button>
+
+                    <a
+                        href="{{ url_for('reports.reports') }}"
+                        class="btn btn-outline-secondary"
+                    >
+                        Clear
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<!-- =====================================================
+     SUMMARY CARDS
+     ===================================================== -->
+
+<div class="stats-grid mb-4">
+
+    <!-- TOTAL STUDENTS -->
+
+    <div class="stat-card">
+
+        <div class="stat-card-content">
+
+            <div class="stat-card-top">
+
+                <span class="stat-card-label">
+                    Total Students
+                </span>
+
+                <span class="stat-card-icon">
+                    S
+                </span>
+
+            </div>
+
+            <div class="stat-card-value">
+                {{ student_count }}
+            </div>
+
+            <div class="stat-card-description">
+                Registered students
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- FINALIZED SESSIONS -->
+
+    <div class="stat-card">
+
+        <div class="stat-card-content">
+
+            <div class="stat-card-top">
+
+                <span class="stat-card-label">
+                    Finalized Sessions
+                </span>
+
+                <span class="stat-card-icon">
+                    F
+                </span>
+
+            </div>
+
+            <div class="stat-card-value">
+                {{ total_sessions }}
+            </div>
+
+            <div class="stat-card-description">
+                Completed attendance sessions
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- PENDING SESSIONS -->
+
+    <div class="stat-card">
+
+        <div class="stat-card-content">
+
+            <div class="stat-card-top">
+
+                <span class="stat-card-label">
+                    Pending Sessions
+                </span>
+
+                <span class="stat-card-icon">
+                    P
+                </span>
+
+            </div>
+
+            <div class="stat-card-value">
+                {{ pending_sessions }}
+            </div>
+
+            <div class="stat-card-description">
+                Sessions awaiting finalization
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- OVERALL ATTENDANCE -->
+
+    <div class="stat-card">
+
+        <div class="stat-card-content">
+
+            <div class="stat-card-top">
+
+                <span class="stat-card-label">
+                    Overall Attendance
+                </span>
+
+                <span class="stat-card-icon">
+                    %
+                </span>
+
+            </div>
+
+            <div class="stat-card-value">
+                {{ overall_percentage }}%
+            </div>
+
+            <div class="stat-card-description">
+                Based on finalized sessions
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     CHARTS
+     ===================================================== -->
+
+<div class="dashboard-grid mb-4">
+
+    <!-- OVERALL CHART -->
+
+    <div class="dashboard-panel">
+
+        <div class="dashboard-panel-header">
+
+            <div>
+
+                <h2 class="dashboard-panel-title">
+                    Overall Attendance
+                </h2>
+
+                <p class="dashboard-panel-subtitle">
+                    Attendance distribution for finalized
+                    sessions.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div
+            style="
+                position: relative;
+                height: 320px;
+                width: 100%;
+            "
+        >
+
+            <canvas
+                id="overallAttendanceChart"
+            ></canvas>
+
+        </div>
+
+    </div>
+
+
+    <!-- REPORT SUMMARY -->
+
+    <div class="dashboard-panel">
+
+        <div class="dashboard-panel-header">
+
+            <div>
+
+                <h2 class="dashboard-panel-title">
+                    Report Summary
+                </h2>
+
+                <p class="dashboard-panel-subtitle">
+                    Current report statistics.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="attendance-summary">
+
+            <div class="summary-item">
+
+                <span class="summary-label">
+                    Registered Students
+                </span>
+
+                <strong class="summary-value">
+                    {{ student_count }}
+                </strong>
+
+            </div>
+
+
+            <div class="summary-item">
+
+                <span class="summary-label">
+                    Finalized Sessions
+                </span>
+
+                <strong class="summary-value">
+                    {{ total_sessions }}
+                </strong>
+
+            </div>
+
+
+            <div class="summary-item">
+
+                <span class="summary-label">
+                    Pending Sessions
+                </span>
+
+                <strong class="summary-value">
+                    {{ pending_sessions }}
+                </strong>
+
+            </div>
+
+
+            <div class="summary-item">
+
+                <span class="summary-label">
+                    Attendance Marked
+                </span>
+
+                <strong class="summary-value">
+                    {{ present_count }}
+                </strong>
+
+            </div>
+
+
+            <div class="summary-item">
+
+                <span class="summary-label">
+                    Absent Records
+                </span>
+
+                <strong class="summary-value">
+                    {{ absent_count }}
+                </strong>
+
+            </div>
+
+
+            <div class="summary-item">
+
+                <span class="summary-label">
+                    Overall Percentage
+                </span>
+
+                <strong class="summary-value">
+                    {{ overall_percentage }}%
+                </strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     SUBJECT CHART
+     ===================================================== -->
+
+<div class="dashboard-panel mb-4">
+
+    <div class="dashboard-panel-header">
+
+        <div>
+
+            <h2 class="dashboard-panel-title">
+                Subject-wise Attendance
+            </h2>
+
+            <p class="dashboard-panel-subtitle">
+                Attendance percentage across subjects.
+            </p>
+
+        </div>
+
+    </div>
+
+    <div
+        style="
+            position: relative;
+            height: 350px;
+            width: 100%;
+        "
+    >
+
+        <canvas
+            id="subjectAttendanceChart"
+        ></canvas>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     STUDENT CHART
+     ===================================================== -->
+
+<div class="dashboard-panel mb-4">
+
+    <div class="dashboard-panel-header">
+
+        <div>
+
+            <h2 class="dashboard-panel-title">
+                Student-wise Attendance
+            </h2>
+
+            <p class="dashboard-panel-subtitle">
+                Attendance percentage for each student.
+            </p>
+
+        </div>
+
+    </div>
+
+    <div
+        style="
+            position: relative;
+            height: 400px;
+            width: 100%;
+        "
+    >
+
+        <canvas
+            id="studentAttendanceChart"
+        ></canvas>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     STUDENT TABLE
+     ===================================================== -->
+
+<div class="dashboard-panel mb-4">
+
+    <div class="dashboard-panel-header">
+
+        <div>
+
+            <h2 class="dashboard-panel-title">
+                Student-wise Attendance Details
+            </h2>
+
+            <p class="dashboard-panel-subtitle">
+                Detailed attendance performance for every
+                student.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    {% if student_reports %}
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Student</th>
+                        <th>Roll Number</th>
+                        <th>Department</th>
+                        <th>Classes Attended</th>
+                        <th>Classes Absent</th>
+                        <th>Classes Conducted</th>
+                        <th>Attendance</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for report in student_reports %}
+
+                        <tr>
+
+                            <td>
+
+                                <strong>
+                                    {{ report.student.name }}
+                                </strong>
+
+                                {% if report.student.email %}
+
+                                    <br>
+
+                                    <small class="text-muted">
+                                        {{ report.student.email }}
+                                    </small>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <td>
+                                {{ report.student.roll_number }}
+                            </td>
+
+
+                            <td>
+                                {{ report.student.department or "-" }}
+                            </td>
+
+
+                            <td>
+                                {{ report.attended }}
+                            </td>
+
+
+                            <td>
+                                {{ report.absent }}
+                            </td>
+
+
+                            <td>
+                                {{ report.total_sessions }}
+                            </td>
+
+
+                            <td>
+                                <strong>
+                                    {{ report.percentage }}%
+                                </strong>
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    {% else %}
+
+        <div class="text-center py-5">
+
+            <h4>
+                No student data available
+            </h4>
+
+        </div>
+
+    {% endif %}
+
+</div>
+
+
+<!-- =====================================================
+     SUBJECT TABLE
+     ===================================================== -->
+
+<div class="dashboard-panel">
+
+    <div class="dashboard-panel-header">
+
+        <div>
+
+            <h2 class="dashboard-panel-title">
+                Subject-wise Attendance Details
+            </h2>
+
+            <p class="dashboard-panel-subtitle">
+                Detailed attendance performance by subject.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    {% if subject_reports %}
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle">
+
+                <thead>
+
+                    <tr>
+
+                        <th>Subject</th>
+                        <th>Subject Name</th>
+                        <th>Classes Conducted</th>
+                        <th>Attendance Records</th>
+                        <th>Absent Records</th>
+                        <th>Attendance</th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for report in subject_reports %}
+
+                        <tr>
+
+                            <td>
+
+                                <strong>
+                                    {{ report.subject.subject_code }}
+                                </strong>
+
+                            </td>
+
+
+                            <td>
+                                {{ report.subject.subject_name }}
+                            </td>
+
+
+                            <td>
+                                {{ report.sessions }}
+                            </td>
+
+
+                            <td>
+                                {{ report.attended }}
+                            </td>
+
+
+                            <td>
+                                {{ report.absent }}
+                            </td>
+
+
+                            <td>
+
+                                <strong>
+                                    {{ report.percentage }}%
+                                </strong>
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    {% else %}
+
+        <div class="text-center py-5">
+
+            <h4>
+                No subject data available
+            </h4>
+
+        </div>
+
+    {% endif %}
+
+</div>
+
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script
+    src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.min.js"
+></script>
+
+
+<script>
+
+    // =====================================================
+    // OVERALL ATTENDANCE
+    // =====================================================
+
+    const overallCanvas =
+        document.getElementById(
+            "overallAttendanceChart"
+        );
+
+
+    if (overallCanvas) {
+
+        const totalPossible =
+            {{ student_count * total_sessions }};
+
+        const attended =
+            {{ present_count }};
+
+        const absent =
+            {{ absent_count }};
+
+        const remaining =
+            Math.max(
+                totalPossible - attended - absent,
+                0
+            );
+
+
+        new Chart(
+            overallCanvas,
+            {
+                type: "doughnut",
+
+                data: {
+
+                    labels: [
+                        "Present / Late",
+                        "Absent",
+                        "Not Recorded"
+                    ],
+
+                    datasets: [
+                        {
+                            data: [
+                                attended,
+                                absent,
+                                remaining
+                            ],
+
+                            borderWidth: 0
+                        }
+                    ]
+
+                },
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    cutout: "68%",
+
+                    plugins: {
+
+                        legend: {
+                            position: "bottom"
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+    }
+
+
+    // =====================================================
+    // SUBJECT CHART
+    // =====================================================
+
+    const subjectCanvas =
+        document.getElementById(
+            "subjectAttendanceChart"
+        );
+
+
+    if (subjectCanvas) {
+
+        const subjectLabels = [
+
+            {% for report in subject_reports %}
+
+                "{{ report.subject.subject_code }}"
+
+                {% if not loop.last %}
+                    ,
+                {% endif %}
+
+            {% endfor %}
+
+        ];
+
+
+        const subjectValues = [
+
+            {% for report in subject_reports %}
+
+                {{ report.percentage }}
+
+                {% if not loop.last %}
+                    ,
+                {% endif %}
+
+            {% endfor %}
+
+        ];
+
+
+        new Chart(
+            subjectCanvas,
+            {
+                type: "bar",
+
+                data: {
+
+                    labels: subjectLabels,
+
+                    datasets: [
+                        {
+                            label:
+                                "Attendance %",
+
+                            data:
+                                subjectValues,
+
+                            borderWidth: 1
+                        }
+                    ]
+
+                },
+
+                options: {
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    scales: {
+
+                        y: {
+
+                            beginAtZero: true,
+
+                            max: 100,
+
+                            ticks: {
+
+                                callback:
+                                    function(value) {
+
+                                        return value + "%";
+
+                                    }
+
+                            }
+
+                        }
+
+                    },
+
+                    plugins: {
+
+                        legend: {
+                            display: false
+                        }
+
+                    }
+
+                }
+
+            }
+        );
+
+    }
+
+
+    // =====================================================
+    // STUDENT CHART
+    // =====================================================
+
+    const studentCanvas =
+        document.getElementById(
+            "studentAttendanceChart"
+        );
+
+
+    if (studentCanvas) {
+
+        const studentLabels = [
+
+            {% for report in student_reports %}
+
+                "{{ report.student.roll_number }}"
+
+                {% if not loop.last %}
+                    ,
+                {% endif %}
+
+            {% endfor %}
+
+        ];
+
+
+        const studentValues = [
+
+            {% for report in student_reports %}
+
+                {{ report.percentage }}
+
+                {% if not loop.last %}
+                    ,
+                {% endif %}
+
+            {% endfor %}
+
+        ];
+
+
+        new Chart(
+            studentCanvas,
+            {
+                type: "bar",
+
+                data: {
+
+                    labels: studentLabels,
+
+                    datasets: [
+                        {
+                            label:
+                                "Attendance %",
+
+                            data:
+                                studentValues,
+
+                            borderWidth: 1
+                        }
+                    ]
+
+                },
+
+                options: {
+
+                    indexAxis: "y",
+
+                    responsive: true,
+
+                    maintainAspectRatio: false,
+
+                    scales: {
+
+                        x: {
+
+                            beginAtZero: true,
+
+                            max: 100,
+
+                            ticks: {
+
+                                callback:
+                                    function(value) {
+
+                                        return value + "%";
+
+                                    }
+
+                            }
+
+                        }
+
+                    },
+
+                    plugins: {
+
+                        legend: {
+                            display: false
+                        }
+
+                    }
+
+                }
+
+            }
+
+        );
+
+    }
+
+</script>
+
+{% endblock %}

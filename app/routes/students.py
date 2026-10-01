@@ -1,9 +1,23 @@
-from flask import Blueprint, flash, redirect, render_template, request, url_for
+import base64
+import binascii
+
+import cv2
+import numpy as np
+
+from flask import (
+    Blueprint,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for
+)
 from flask_login import login_required
 
 from app import db
 from app.forms.student import DeleteStudentForm, StudentForm
-from app.models import Student
+from app.models import FaceEncoding, Student
+from app.services.face_recognition import face_service
 
 
 students_bp = Blueprint(
@@ -280,3 +294,314 @@ def delete_student(student_id):
     return redirect(
         url_for("students.list_students")
     )
+
+
+@students_bp.route(
+    "/<int:student_id>/register-face",
+    methods=["GET", "POST"]
+)
+@login_required
+def register_face(student_id):
+    """Register or replace a student's face encoding."""
+
+    student = db.get_or_404(
+        Student,
+        student_id
+    )
+
+    if request.method == "GET":
+        return render_template(
+            "students/register_face.html",
+            student=student
+        )
+
+    image_data = request.form.get(
+        "image",
+        ""
+    )
+
+    if not image_data:
+        return {
+            "success": False,
+            "message": "No image was received."
+        }, 400
+
+    try:
+        if "," in image_data:
+            image_data = image_data.split(
+                ",",
+                1
+            )[1]
+
+        image_bytes = base64.b64decode(
+            image_data,
+            validate=True
+        )
+
+    except (
+        ValueError,
+        TypeError,
+        binascii.Error
+    ):
+        return {
+            "success": False,
+            "message": "Invalid image data."
+        }, 400
+
+    image_array = np.frombuffer(
+        image_bytes,
+        dtype=np.uint8
+    )
+
+    image = cv2.imdecode(
+        image_array,
+        cv2.IMREAD_COLOR
+    )
+
+    if image is None:
+        return {
+            "success": False,
+            "message": "The captured image could not be read."
+        }, 400
+
+    try:
+        faces = face_service.detect_faces(
+            image
+        )
+
+    except Exception as error:
+        return {
+            "success": False,
+            "message": f"Face detection failed: {error}"
+        }, 500
+
+    if len(faces) == 0:
+        return {
+            "success": False,
+            "message": (
+                "No face detected. "
+                "Make sure your face is clearly visible "
+                "and try again."
+            )
+        }, 400
+
+    if len(faces) > 1:
+        return {
+            "success": False,
+            "message": (
+                "Multiple faces detected. "
+                "Only the student registering their face "
+                "should be visible."
+            )
+        }, 400
+
+    face = faces[0]
+
+    try:
+        encoding = face_service.generate_embedding(
+            image,
+            face
+        )
+
+    except Exception as error:
+        return {
+            "success": False,
+            "message": f"Could not generate face encoding: {error}"
+        }, 500
+
+    existing_encoding = db.session.execute(
+        db.select(FaceEncoding).where(
+            FaceEncoding.student_id == student.id
+        )
+    ).scalar_one_or_none()
+
+    if existing_encoding:
+        existing_encoding.encoding = encoding
+    else:
+        new_encoding = FaceEncoding(
+            student_id=student.id,
+            encoding=encoding
+        )
+
+        db.session.add(
+            new_encoding
+        )
+
+    db.session.commit()
+
+    return {
+        "success": True,
+        "message": (
+            f"Face registered successfully for {student.name}."
+        )
+    }
+
+
+@students_bp.route(
+    "/<int:student_id>/verify-face",
+    methods=["GET", "POST"]
+)
+@login_required
+def verify_face(student_id):
+    """Verify a live face against the student's stored face."""
+
+    student = db.get_or_404(
+        Student,
+        student_id
+    )
+
+    stored_encoding = db.session.execute(
+        db.select(FaceEncoding).where(
+            FaceEncoding.student_id == student.id
+        )
+    ).scalar_one_or_none()
+
+    if stored_encoding is None:
+        if request.method == "GET":
+            flash(
+                "This student does not have a registered face yet.",
+                "warning"
+            )
+
+            return redirect(
+                url_for(
+                    "students.student_detail",
+                    student_id=student.id
+                )
+            )
+
+        return {
+            "success": False,
+            "message": "This student does not have a registered face."
+        }, 400
+
+    if request.method == "GET":
+        return render_template(
+            "students/verify_face.html",
+            student=student
+        )
+
+    image_data = request.form.get(
+        "image",
+        ""
+    )
+
+    if not image_data:
+        return {
+            "success": False,
+            "message": "No image was received."
+        }, 400
+
+    try:
+        if "," in image_data:
+            image_data = image_data.split(
+                ",",
+                1
+            )[1]
+
+        image_bytes = base64.b64decode(
+            image_data,
+            validate=True
+        )
+
+    except (
+        ValueError,
+        TypeError,
+        binascii.Error
+    ):
+        return {
+            "success": False,
+            "message": "Invalid image data."
+        }, 400
+
+    image_array = np.frombuffer(
+        image_bytes,
+        dtype=np.uint8
+    )
+
+    image = cv2.imdecode(
+        image_array,
+        cv2.IMREAD_COLOR
+    )
+
+    if image is None:
+        return {
+            "success": False,
+            "message": "The captured image could not be read."
+        }, 400
+
+    try:
+        faces = face_service.detect_faces(
+            image
+        )
+
+    except Exception as error:
+        return {
+            "success": False,
+            "message": f"Face detection failed: {error}"
+        }, 500
+
+    if len(faces) == 0:
+        return {
+            "success": False,
+            "message": (
+                "No face detected. "
+                "Please position your face clearly "
+                "in front of the camera."
+            )
+        }, 400
+
+    if len(faces) > 1:
+        return {
+            "success": False,
+            "message": (
+                "Multiple faces detected. "
+                "Only one person should be visible."
+            )
+        }, 400
+
+    try:
+        new_embedding = face_service.generate_embedding(
+            image,
+            faces[0]
+        )
+
+        similarity = face_service.compare_embeddings(
+            stored_encoding.encoding,
+            new_embedding
+        )
+
+    except Exception as error:
+        return {
+            "success": False,
+            "message": f"Face comparison failed: {error}"
+        }, 500
+
+    # SFace cosine similarity threshold.
+    # We use this only for the verification test.
+    threshold = 0.363
+
+    matched = similarity >= threshold
+
+    if matched:
+        message = (
+            f"Face matched successfully with {student.name}."
+        )
+    else:
+        message = (
+            "The captured face does not match the "
+            "registered face."
+        )
+
+    return {
+        "success": True,
+        "matched": matched,
+        "student_name": student.name,
+        "roll_number": student.roll_number,
+        "similarity": round(
+            similarity,
+            4
+        ),
+        "threshold": threshold,
+        "message": message
+    }

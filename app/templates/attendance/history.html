@@ -1,0 +1,483 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+    Attendance History - SmartAttend
+{% endblock %}
+
+
+{% block content %}
+
+
+<!-- =====================================================
+     PAGE HEADER
+     ===================================================== -->
+
+<div class="dashboard-header">
+
+    <div>
+
+        <h1 class="dashboard-title">
+            Attendance History
+        </h1>
+
+        <p class="dashboard-subtitle">
+            View and filter attendance records.
+        </p>
+
+    </div>
+
+
+    <a
+        href="{{ url_for('attendance.list_attendance_sessions') }}"
+        class="btn btn-secondary"
+    >
+        Attendance Sessions
+    </a>
+
+</div>
+
+
+<!-- =====================================================
+     FILTERS
+     ===================================================== -->
+
+<div class="dashboard-panel mb-4">
+
+    <div class="dashboard-panel-header">
+
+        <div>
+
+            <h2 class="dashboard-panel-title">
+                Filters
+            </h2>
+
+            <p class="dashboard-panel-subtitle">
+                Narrow down attendance records.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <form
+        method="GET"
+        action="{{ url_for('attendance.attendance_history') }}"
+    >
+
+        <div class="row g-3">
+
+
+            <!-- STUDENT -->
+
+            <div class="col-lg-4 col-md-6">
+
+                <label
+                    for="student"
+                    class="form-label"
+                >
+                    Student
+                </label>
+
+                <input
+                    type="text"
+                    id="student"
+                    name="student"
+                    class="form-control"
+                    value="{{ student_search }}"
+                    placeholder="Name, roll number or email"
+                >
+
+            </div>
+
+
+            <!-- SUBJECT -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <label
+                    for="subject"
+                    class="form-label"
+                >
+                    Subject
+                </label>
+
+                <select
+                    id="subject"
+                    name="subject"
+                    class="form-select"
+                >
+
+                    <option value="">
+                        All Subjects
+                    </option>
+
+
+                    {% for subject in subjects %}
+
+                        <option
+                            value="{{ subject.id }}"
+                            {% if selected_subject == subject.id %}
+                                selected
+                            {% endif %}
+                        >
+
+                            {{ subject.subject_code }}
+                            -
+                            {{ subject.subject_name }}
+
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <!-- DATE -->
+
+            <div class="col-lg-2 col-md-6">
+
+                <label
+                    for="date"
+                    class="form-label"
+                >
+                    Date
+                </label>
+
+                <input
+                    type="date"
+                    id="date"
+                    name="date"
+                    class="form-control"
+                    value="{{ selected_date }}"
+                >
+
+            </div>
+
+
+            <!-- STATUS -->
+
+            <div class="col-lg-3 col-md-6">
+
+                <label
+                    for="status"
+                    class="form-label"
+                >
+                    Status
+                </label>
+
+                <select
+                    id="status"
+                    name="status"
+                    class="form-select"
+                >
+
+                    <option value="">
+                        All Statuses
+                    </option>
+
+                    <option
+                        value="present"
+                        {% if selected_status == "present" %}
+                            selected
+                        {% endif %}
+                    >
+                        Present
+                    </option>
+
+                    <option
+                        value="late"
+                        {% if selected_status == "late" %}
+                            selected
+                        {% endif %}
+                    >
+                        Late
+                    </option>
+
+                    <option
+                        value="absent"
+                        {% if selected_status == "absent" %}
+                            selected
+                        {% endif %}
+                    >
+                        Absent
+                    </option>
+
+                </select>
+
+            </div>
+
+        </div>
+
+
+        <!-- FILTER BUTTONS -->
+
+        <div class="d-flex gap-2 mt-4">
+
+            <button
+                type="submit"
+                class="btn btn-primary"
+            >
+                Apply Filters
+            </button>
+
+
+            <a
+                href="{{ url_for(
+                    'attendance.attendance_history'
+                ) }}"
+                class="btn btn-outline-secondary"
+            >
+                Clear Filters
+            </a>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<!-- =====================================================
+     RESULTS
+     ===================================================== -->
+
+<div class="dashboard-panel">
+
+    <div class="dashboard-panel-header">
+
+        <div>
+
+            <h2 class="dashboard-panel-title">
+                Attendance Records
+            </h2>
+
+            <p class="dashboard-panel-subtitle">
+                {{ attendance_records|length }}
+                record{% if attendance_records|length != 1 %}s{% endif %}
+                found
+            </p>
+
+        </div>
+
+    </div>
+
+
+    {% if attendance_records %}
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle">
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Student
+                        </th>
+
+                        <th>
+                            Roll Number
+                        </th>
+
+                        <th>
+                            Subject
+                        </th>
+
+                        <th>
+                            Date
+                        </th>
+
+                        <th>
+                            Class Time
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                        <th>
+                            Confidence
+                        </th>
+
+                        <th>
+                            Marked At
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for record in attendance_records %}
+
+                        <tr>
+
+
+                            <!-- STUDENT -->
+
+                            <td>
+
+                                <strong>
+                                    {{ record.student.name }}
+                                </strong>
+
+                            </td>
+
+
+                            <!-- ROLL NUMBER -->
+
+                            <td>
+                                {{ record.student.roll_number }}
+                            </td>
+
+
+                            <!-- SUBJECT -->
+
+                            <td>
+
+                                <strong>
+                                    {{ record.session.subject.subject_code }}
+                                </strong>
+
+                                <br>
+
+                                <small class="text-muted">
+                                    {{ record.session.subject.subject_name }}
+                                </small>
+
+                            </td>
+
+
+                            <!-- DATE -->
+
+                            <td>
+
+                                {{ record.session.session_date.strftime(
+                                    "%d %b %Y"
+                                ) }}
+
+                            </td>
+
+
+                            <!-- CLASS TIME -->
+
+                            <td>
+
+                                {{ record.session.start_time.strftime(
+                                    "%I:%M %p"
+                                ) }}
+
+                                -
+
+                                {{ record.session.end_time.strftime(
+                                    "%I:%M %p"
+                                ) }}
+
+                            </td>
+
+
+                            <!-- STATUS -->
+
+                            <td>
+
+                                {% if record.status == "present" %}
+
+                                    <span class="badge text-bg-success">
+                                        Present
+                                    </span>
+
+                                {% elif record.status == "late" %}
+
+                                    <span class="badge text-bg-warning">
+                                        Late
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="badge text-bg-danger">
+                                        Absent
+                                    </span>
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <!-- CONFIDENCE -->
+
+                            <td>
+
+                                {% if record.confidence is not none %}
+
+                                    {{ "%.2f"|format(
+                                        record.confidence * 100
+                                    ) }}%
+
+                                {% else %}
+
+                                    -
+
+                                {% endif %}
+
+                            </td>
+
+
+                            <!-- MARKED AT -->
+
+                            <td>
+
+                                {{ record.marked_at.strftime(
+                                    "%d %b %Y, %I:%M %p"
+                                ) }}
+
+                            </td>
+
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+    {% else %}
+
+        <div class="text-center py-5">
+
+            <h4>
+                No attendance records found
+            </h4>
+
+            <p class="text-muted mb-4">
+                Try changing your filters or start a new
+                attendance session.
+            </p>
+
+            <a
+                href="{{ url_for(
+                    'attendance.list_attendance_sessions'
+                ) }}"
+                class="btn btn-primary"
+            >
+                Start Attendance
+            </a>
+
+        </div>
+
+    {% endif %}
+
+</div>
+
+
+{% endblock %}

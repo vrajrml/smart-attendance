@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+    Class Sessions - SmartAttend
+{% endblock %}
+
+
+{% block content %}
+
+
+<div class="dashboard-header">
+
+    <div>
+
+        <h1 class="dashboard-title">
+            Class Sessions
+        </h1>
+
+        <p class="dashboard-subtitle">
+            Manage classes used for attendance.
+        </p>
+
+    </div>
+
+
+    <div class="d-flex gap-2">
+
+        <a
+            href="{{ url_for('class_sessions.add_session') }}"
+            class="btn btn-primary"
+        >
+            Add Class Session
+        </a>
+
+
+        <a
+            href="{{ url_for('subjects.list_subjects') }}"
+            class="btn btn-secondary"
+        >
+            Subjects
+        </a>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     SEARCH
+     ===================================================== -->
+
+<div class="dashboard-panel mb-4">
+
+    <form
+        method="GET"
+        action="{{ url_for('class_sessions.list_sessions') }}"
+    >
+
+        <div class="row g-2">
+
+            <div class="col-md-10">
+
+                <input
+                    type="text"
+                    name="search"
+                    class="form-control"
+                    placeholder="Search by subject code or subject name..."
+                    value="{{ search }}"
+                >
+
+            </div>
+
+
+            <div class="col-md-2">
+
+                <button
+                    type="submit"
+                    class="btn btn-outline-primary w-100"
+                >
+                    Search
+                </button>
+
+            </div>
+
+        </div>
+
+    </form>
+
+</div>
+
+
+<!-- =====================================================
+     CLASS SESSION TABLE
+     ===================================================== -->
+
+<div class="dashboard-panel">
+
+    {% if sessions %}
+
+        <div class="table-responsive">
+
+            <table class="table table-hover align-middle">
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Subject
+                        </th>
+
+                        <th>
+                            Date
+                        </th>
+
+                        <th>
+                            Start
+                        </th>
+
+                        <th>
+                            End
+                        </th>
+
+                        <th class="text-end">
+                            Actions
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for session in sessions %}
+
+                        <tr>
+
+                            <td>
+
+                                <strong>
+                                    {{ session.subject.subject_code }}
+                                </strong>
+
+                                <br>
+
+                                <small class="text-muted">
+                                    {{ session.subject.subject_name }}
+                                </small>
+
+                            </td>
+
+
+                            <td>
+                                {{ session.session_date.strftime(
+                                    "%d %b %Y"
+                                ) }}
+                            </td>
+
+
+                            <td>
+                                {{ session.start_time.strftime(
+                                    "%I:%M %p"
+                                ) }}
+                            </td>
+
+
+                            <td>
+                                {{ session.end_time.strftime(
+                                    "%I:%M %p"
+                                ) }}
+                            </td>
+
+
+                            <td class="text-end">
+
+                                <a
+                                    href="{{ url_for(
+                                        'class_sessions.edit_session',
+                                        session_id=session.id
+                                    ) }}"
+                                    class="btn btn-sm btn-primary"
+                                >
+                                    Edit
+                                </a>
+
+
+                                <form
+                                    method="POST"
+                                    action="{{ url_for(
+                                        'class_sessions.delete_session',
+                                        session_id=session.id
+                                    ) }}"
+                                    class="d-inline"
+                                    onsubmit="return confirm(
+                                        'Delete this class session? Any attendance records for this session will also be deleted.'
+                                    );"
+                                >
+
+                                    {{ delete_form.hidden_tag() }}
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-sm btn-danger"
+                                    >
+                                        Delete
+                                    </button>
+
+                                </form>
+
+                            </td>
+
+                        </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+
+    {% else %}
+
+        <div class="text-center py-5">
+
+            <h4>
+                No class sessions found
+            </h4>
+
+            <p class="text-muted">
+                Create a class session to prepare for attendance.
+            </p>
+
+            <a
+                href="{{ url_for(
+                    'class_sessions.add_session'
+                ) }}"
+                class="btn btn-primary"
+            >
+                Add Class Session
+            </a>
+
+        </div>
+
+    {% endif %}
+
+</div>
+
+
+{% endblock %}

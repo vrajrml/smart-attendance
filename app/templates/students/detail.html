@@ -56,7 +56,34 @@
 
             </div>
 
+
             <div>
+
+                {% if student.face_encoding %}
+
+                    <a
+                        href="{{ url_for(
+                            'students.verify_face',
+                            student_id=student.id
+                        ) }}"
+                        class="btn btn-info"
+                    >
+                        Verify Face
+                    </a>
+
+                {% endif %}
+
+
+                <a
+                    href="{{ url_for(
+                        'students.register_face',
+                        student_id=student.id
+                    ) }}"
+                    class="btn btn-success"
+                >
+                    Register Face
+                </a>
+
 
                 <a
                     href="{{ url_for(
@@ -67,6 +94,7 @@
                 >
                     Edit Student
                 </a>
+
 
                 <a
                     href="{{ url_for(
@@ -160,6 +188,43 @@
                     <p>
                         {{ student.semester or "Not provided" }}
                     </p>
+
+                </div>
+
+
+                <div class="col-12">
+
+                    <hr>
+
+                    <small class="text-muted">
+                        Face Registration
+                    </small>
+
+                    <div class="mt-2">
+
+                        {% if student.face_encoding %}
+
+                            <span class="badge bg-success">
+                                Face Registered
+                            </span>
+
+                            <span class="text-muted ms-2">
+                                A face encoding is stored for this student.
+                            </span>
+
+                        {% else %}
+
+                            <span class="badge bg-warning text-dark">
+                                Face Not Registered
+                            </span>
+
+                            <span class="text-muted ms-2">
+                                Register a face before using attendance recognition.
+                            </span>
+
+                        {% endif %}
+
+                    </div>
 
                 </div>
 

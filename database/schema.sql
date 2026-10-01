@@ -88,6 +88,10 @@ CREATE TABLE IF NOT EXISTS class_sessions (
 
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
+    attendance_finalized BOOLEAN NOT NULL DEFAULT FALSE,
+
+    finalized_at DATETIME NULL,
+
     CONSTRAINT fk_class_sessions_subject
         FOREIGN KEY (subject_id)
         REFERENCES subjects(id)
@@ -160,3 +164,4 @@ CREATE TABLE IF NOT EXISTS attendance (
 
     INDEX idx_attendance_date (marked_at)
 );
+

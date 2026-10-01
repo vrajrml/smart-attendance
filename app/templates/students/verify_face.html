@@ -1,0 +1,468 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Verify Face - {{ student.name }} - SmartAttend
+{% endblock %}
+
+
+{% block content %}
+
+<nav class="navbar navbar-expand-lg bg-dark navbar-dark">
+
+    <div class="container-fluid">
+
+        <a
+            class="navbar-brand fw-bold"
+            href="{{ url_for('dashboard.dashboard') }}"
+        >
+            SmartAttend
+        </a>
+
+        <div class="d-flex align-items-center">
+
+            <span class="text-light me-3">
+                Welcome, {{ current_user.username }}
+            </span>
+
+            <a
+                href="{{ url_for('auth.logout') }}"
+                class="btn btn-outline-light btn-sm"
+            >
+                Logout
+            </a>
+
+        </div>
+
+    </div>
+
+</nav>
+
+
+<div class="container">
+
+    <div class="dashboard-content">
+
+        <div class="mb-4">
+
+            <h1 class="dashboard-title">
+                Verify Face
+            </h1>
+
+            <p class="text-muted">
+                Verify the registered face for
+                <strong>{{ student.name }}</strong>
+                ({{ student.roll_number }})
+            </p>
+
+        </div>
+
+
+        <div class="row justify-content-center">
+
+            <div class="col-lg-8">
+
+                <div class="dashboard-panel">
+
+                    <div class="text-center mb-4">
+
+                        <h4>
+                            Face Verification Test
+                        </h4>
+
+                        <p class="text-muted">
+                            Look directly at the camera and capture
+                            your face to test the recognition system.
+                        </p>
+
+                    </div>
+
+
+                    <div
+                        class="position-relative mx-auto"
+                        style="max-width: 640px;"
+                    >
+
+                        <video
+                            id="camera"
+                            autoplay
+                            playsinline
+                            muted
+                            class="w-100 rounded border"
+                        ></video>
+
+                        <canvas
+                            id="canvas"
+                            style="display: none;"
+                        ></canvas>
+
+                    </div>
+
+
+                    <div
+                        id="status"
+                        class="alert alert-info mt-4 text-center"
+                    >
+                        Click "Start Camera" to begin.
+                    </div>
+
+
+                    <div
+                        id="result"
+                        class="mt-3 text-center"
+                        style="display: none;"
+                    >
+                    </div>
+
+
+                    <div class="text-center mt-4">
+
+                        <button
+                            type="button"
+                            id="startCamera"
+                            class="btn btn-primary me-2"
+                        >
+                            Start Camera
+                        </button>
+
+                        <button
+                            type="button"
+                            id="verifyFace"
+                            class="btn btn-success me-2"
+                            disabled
+                        >
+                            Verify Face
+                        </button>
+
+                        <button
+                            type="button"
+                            id="stopCamera"
+                            class="btn btn-secondary"
+                            disabled
+                        >
+                            Stop Camera
+                        </button>
+
+                    </div>
+
+
+                    <div class="text-center mt-4">
+
+                        <a
+                            href="{{ url_for(
+                                'students.student_detail',
+                                student_id=student.id
+                            ) }}"
+                            class="btn btn-outline-secondary"
+                        >
+                            Back to Student
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const video = document.getElementById("camera");
+const canvas = document.getElementById("canvas");
+
+const startButton = document.getElementById("startCamera");
+const verifyButton = document.getElementById("verifyFace");
+const stopButton = document.getElementById("stopCamera");
+
+const statusBox = document.getElementById("status");
+const resultBox = document.getElementById("result");
+
+let cameraStream = null;
+
+
+function setStatus(message, type = "info") {
+
+    statusBox.className =
+        `alert alert-${type} mt-4 text-center`;
+
+    statusBox.textContent = message;
+}
+
+
+function startCamera() {
+
+    navigator.mediaDevices.getUserMedia({
+        video: {
+            width: {
+                ideal: 1280
+            },
+            height: {
+                ideal: 720
+            },
+            facingMode: "user"
+        },
+        audio: false
+    })
+    .then(stream => {
+
+        cameraStream = stream;
+
+        video.srcObject = cameraStream;
+
+        startButton.disabled = true;
+        verifyButton.disabled = false;
+        stopButton.disabled = false;
+
+        setStatus(
+            "Camera is ready. Look directly at the camera.",
+            "success"
+        );
+
+    })
+    .catch(error => {
+
+        console.error(error);
+
+        setStatus(
+            "Could not access the camera. Please allow camera permission.",
+            "danger"
+        );
+    });
+}
+
+
+function stopCamera() {
+
+    if (cameraStream) {
+
+        cameraStream
+            .getTracks()
+            .forEach(
+                track => track.stop()
+            );
+
+        cameraStream = null;
+    }
+
+    video.srcObject = null;
+
+    startButton.disabled = false;
+    verifyButton.disabled = true;
+    stopButton.disabled = true;
+
+    setStatus(
+        "Camera stopped.",
+        "secondary"
+    );
+}
+
+
+async function verifyFace() {
+
+    if (!cameraStream) {
+
+        setStatus(
+            "Please start the camera first.",
+            "warning"
+        );
+
+        return;
+    }
+
+
+    if (
+        video.videoWidth === 0 ||
+        video.videoHeight === 0
+    ) {
+
+        setStatus(
+            "Camera is not ready yet. Please wait.",
+            "warning"
+        );
+
+        return;
+    }
+
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+
+    const context = canvas.getContext("2d");
+
+    context.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    const imageData = canvas.toDataURL(
+        "image/jpeg",
+        0.90
+    );
+
+
+    verifyButton.disabled = true;
+
+    resultBox.style.display = "none";
+
+    setStatus(
+        "Analyzing your face...",
+        "info"
+    );
+
+
+    try {
+
+        const formData = new FormData();
+
+        formData.append(
+            "image",
+            imageData
+        );
+
+
+        const response = await fetch(
+            "{{ url_for(
+                'students.verify_face',
+                student_id=student.id
+            ) }}",
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+
+        const result = await response.json();
+
+
+        if (!response.ok) {
+
+            setStatus(
+                result.message ||
+                "Face verification failed.",
+                "danger"
+            );
+
+            verifyButton.disabled = false;
+
+            return;
+        }
+
+
+        if (!result.success) {
+
+            setStatus(
+                result.message,
+                "danger"
+            );
+
+            verifyButton.disabled = false;
+
+            return;
+        }
+
+
+        resultBox.style.display = "block";
+
+
+        if (result.matched) {
+
+            setStatus(
+                result.message,
+                "success"
+            );
+
+            resultBox.className =
+                "alert alert-success mt-3 text-center";
+
+        } else {
+
+            setStatus(
+                result.message,
+                "danger"
+            );
+
+            resultBox.className =
+                "alert alert-danger mt-3 text-center";
+        }
+
+
+        resultBox.innerHTML = `
+            <strong>Recognition Result</strong>
+            <br>
+            Student:
+            ${result.student_name}
+            <br>
+            Roll Number:
+            ${result.roll_number}
+            <br>
+            Similarity:
+            ${result.similarity}
+            <br>
+            Matching Threshold:
+            ${result.threshold}
+        `;
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        setStatus(
+            "Something went wrong during face verification.",
+            "danger"
+        );
+
+    } finally {
+
+        verifyButton.disabled = false;
+    }
+}
+
+
+startButton.addEventListener(
+    "click",
+    startCamera
+);
+
+
+verifyButton.addEventListener(
+    "click",
+    verifyFace
+);
+
+
+stopButton.addEventListener(
+    "click",
+    stopCamera
+);
+
+
+window.addEventListener(
+    "beforeunload",
+    () => {
+
+        if (cameraStream) {
+
+            cameraStream
+                .getTracks()
+                .forEach(
+                    track => track.stop()
+                );
+        }
+    }
+);
+
+</script>
+
+{% endblock %}

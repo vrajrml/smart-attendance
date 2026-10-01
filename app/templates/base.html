@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -12,32 +14,352 @@
         {% block title %}SmartAttend{% endblock %}
     </title>
 
+
     <!-- Bootstrap -->
+
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
         rel="stylesheet"
     >
 
+
     <!-- SmartAttend CSS -->
+
     <link
         rel="stylesheet"
         href="{{ url_for('static', filename='css/style.css') }}"
     >
+
 </head>
+
 
 <body>
 
-{% block content %}
-{% endblock %}
+
+{% if current_user.is_authenticated %}
 
 
-<!-- Bootstrap JavaScript -->
+<div class="dashboard-shell">
+
+
+    <!-- =====================================================
+         TOP NAVBAR
+         ===================================================== -->
+
+    <header class="dashboard-navbar">
+
+        <a
+            href="{{ url_for('dashboard.dashboard') }}"
+            class="dashboard-brand"
+        >
+
+            <span class="dashboard-brand-icon">
+                SA
+            </span>
+
+            <span>
+                SmartAttend
+            </span>
+
+        </a>
+
+
+        <div class="dashboard-user-area">
+
+            <span class="dashboard-welcome">
+
+                Welcome,
+
+                <span class="dashboard-username">
+                    {{ current_user.username }}
+                </span>
+
+            </span>
+
+
+            <a
+                href="{{ url_for('auth.logout') }}"
+                class="dashboard-logout"
+            >
+                Logout
+            </a>
+
+        </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         APPLICATION BODY
+         ===================================================== -->
+
+    <div class="dashboard-body">
+
+
+        <!-- =================================================
+             SIDEBAR
+             ================================================= -->
+
+        <aside class="dashboard-sidebar">
+
+            <div class="dashboard-sidebar-heading">
+                Main Menu
+            </div>
+
+
+            <nav class="dashboard-nav">
+
+
+                <!-- DASHBOARD -->
+
+                <a
+                    href="{{ url_for('dashboard.dashboard') }}"
+                    class="
+                        dashboard-nav-link
+                        {% if request.endpoint == 'dashboard.dashboard' %}
+                            active
+                        {% endif %}
+                    "
+                >
+
+                    <span class="dashboard-nav-icon">
+                        D
+                    </span>
+
+                    <span>
+                        Dashboard
+                    </span>
+
+                </a>
+
+
+                <!-- STUDENTS -->
+
+                <a
+                    href="{{ url_for('students.list_students') }}"
+                    class="
+                        dashboard-nav-link
+                        {% if request.endpoint in [
+                            'students.list_students',
+                            'students.add_student',
+                            'students.student_detail',
+                            'students.edit_student',
+                            'students.register_face',
+                            'students.verify_face'
+                        ] %}
+                            active
+                        {% endif %}
+                    "
+                >
+
+                    <span class="dashboard-nav-icon">
+                        S
+                    </span>
+
+                    <span>
+                        Students
+                    </span>
+
+                </a>
+
+
+                <!-- SUBJECTS -->
+
+                <a
+                    href="{{ url_for('subjects.list_subjects') }}"
+                    class="
+                        dashboard-nav-link
+                        {% if request.endpoint in [
+                            'subjects.list_subjects',
+                            'subjects.add_subject',
+                            'subjects.edit_subject'
+                        ] %}
+                            active
+                        {% endif %}
+                    "
+                >
+
+                    <span class="dashboard-nav-icon">
+                        B
+                    </span>
+
+                    <span>
+                        Subjects
+                    </span>
+
+                </a>
+
+
+                <!-- ATTENDANCE -->
+
+                <a
+                    href="{{ url_for('attendance.list_attendance_sessions') }}"
+                    class="
+                        dashboard-nav-link
+                        {% if request.endpoint in [
+                            'attendance.list_attendance_sessions',
+                            'attendance.attendance_scanner'
+                        ] %}
+                            active
+                        {% endif %}
+                    "
+                >
+
+                    <span class="dashboard-nav-icon">
+                        A
+                    </span>
+
+                    <span>
+                        Attendance
+                    </span>
+
+                </a>
+
+
+                <!-- HISTORY -->
+
+                <a
+                    href="{{ url_for('attendance.attendance_history') }}"
+                    class="
+                        dashboard-nav-link
+                        {% if request.endpoint == 'attendance.attendance_history' %}
+                            active
+                        {% endif %}
+                    "
+                >
+
+                    <span class="dashboard-nav-icon">
+                        H
+                    </span>
+
+                    <span>
+                        History
+                    </span>
+
+                </a>
+
+
+                <!-- REPORTS -->
+
+                <a
+                    href="{{ url_for('reports.reports') }}"
+                    class="
+                        dashboard-nav-link
+                        {% if request.endpoint == 'reports.reports' %}
+                            active
+                        {% endif %}
+                    "
+                >
+
+                    <span class="dashboard-nav-icon">
+                        R
+                    </span>
+
+                    <span>
+                        Reports
+                    </span>
+
+                </a>
+
+
+            </nav>
+
+        </aside>
+
+
+        <!-- =================================================
+             MAIN CONTENT
+             ================================================= -->
+
+        <main class="dashboard-main">
+
+
+            <!-- FLASH MESSAGES -->
+
+            {% with messages = get_flashed_messages(
+                with_categories=true
+            ) %}
+
+                {% if messages %}
+
+                    {% for category, message in messages %}
+
+                        <div
+                            class="alert alert-{{ category }} alert-dismissible fade show mb-4"
+                            role="alert"
+                        >
+
+                            {{ message }}
+
+                            <button
+                                type="button"
+                                class="btn-close"
+                                data-bs-dismiss="alert"
+                                aria-label="Close"
+                            ></button>
+
+                        </div>
+
+                    {% endfor %}
+
+                {% endif %}
+
+            {% endwith %}
+
+
+{% else %}
+
+
+    <!-- =====================================================
+         LOGIN / PUBLIC PAGE
+         ===================================================== -->
+
+    <main>
+
+
+{% endif %}
+
+
+    <!-- =====================================================
+         PAGE CONTENT
+         ===================================================== -->
+
+    {% block content %}
+    {% endblock %}
+
+
+{% if current_user.is_authenticated %}
+
+
+        </main>
+
+    </div>
+
+</div>
+
+
+{% else %}
+
+
+    </main>
+
+
+{% endif %}
+
+
+<!-- =====================================================
+     BOOTSTRAP JAVASCRIPT
+     ===================================================== -->
+
 <script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js">
-</script>
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+></script>
+
 
 {% block scripts %}
 {% endblock %}
 
+
 </body>
+
 </html>

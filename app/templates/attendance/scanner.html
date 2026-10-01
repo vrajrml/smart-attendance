@@ -1,0 +1,598 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+    Attendance Scanner - SmartAttend
+{% endblock %}
+
+
+{% block content %}
+
+<nav class="navbar navbar-expand-lg bg-dark navbar-dark">
+
+    <div class="container-fluid">
+
+        <a
+            class="navbar-brand fw-bold"
+            href="{{ url_for('dashboard.dashboard') }}"
+        >
+            SmartAttend
+        </a>
+
+
+        <div class="d-flex align-items-center">
+
+            <span class="text-light me-3">
+                Welcome, {{ current_user.username }}
+            </span>
+
+
+            <a
+                href="{{ url_for('auth.logout') }}"
+                class="btn btn-outline-light btn-sm"
+            >
+                Logout
+            </a>
+
+        </div>
+
+    </div>
+
+</nav>
+
+
+<div class="container">
+
+    <div class="dashboard-content">
+
+        <div class="mb-4">
+
+            <h1 class="dashboard-title">
+                Attendance Scanner
+            </h1>
+
+
+            <p class="text-muted">
+
+                {{ session.subject.subject_code }}
+                -
+                {{ session.subject.subject_name }}
+
+                <br>
+
+                {{ session.session_date.strftime(
+                    "%d %B %Y"
+                ) }}
+
+                •
+                {{ session.start_time.strftime(
+                    "%I:%M %p"
+                ) }}
+
+                -
+                {{ session.end_time.strftime(
+                    "%I:%M %p"
+                ) }}
+
+            </p>
+
+        </div>
+
+
+        <div class="row justify-content-center">
+
+            <div class="col-lg-9">
+
+                <div class="dashboard-panel">
+
+                    <div class="text-center mb-4">
+
+                        <h3>
+                            Face Recognition Attendance
+                        </h3>
+
+                        <p class="text-muted">
+                            Position one student in front of the camera
+                            and click "Scan Face".
+                        </p>
+
+                    </div>
+
+
+                    <div
+                        class="position-relative mx-auto"
+                        style="max-width: 720px;"
+                    >
+
+                        <video
+                            id="camera"
+                            autoplay
+                            playsinline
+                            muted
+                            class="w-100 rounded border"
+                        ></video>
+
+
+                        <canvas
+                            id="canvas"
+                            style="display: none;"
+                        ></canvas>
+
+                    </div>
+
+
+                    <div
+                        id="status"
+                        class="alert alert-info mt-4 text-center"
+                    >
+                        Click "Start Camera" to begin.
+                    </div>
+
+
+                    <div
+                        id="result"
+                        class="mt-3"
+                        style="display: none;"
+                    >
+                    </div>
+
+
+                    <div class="text-center mt-4">
+
+                        <button
+                            type="button"
+                            id="startCamera"
+                            class="btn btn-primary me-2"
+                        >
+                            Start Camera
+                        </button>
+
+
+                        <button
+                            type="button"
+                            id="scanFace"
+                            class="btn btn-success me-2"
+                            disabled
+                        >
+                            Scan Face
+                        </button>
+
+
+                        <button
+                            type="button"
+                            id="stopCamera"
+                            class="btn btn-secondary"
+                            disabled
+                        >
+                            Stop Camera
+                        </button>
+
+                    </div>
+
+
+                    <div class="text-center mt-4">
+
+                        <a
+                            href="{{ url_for(
+                                'attendance.list_attendance_sessions'
+                            ) }}"
+                            class="btn btn-outline-secondary"
+                        >
+                            Back to Attendance
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const video = document.getElementById("camera");
+
+const canvas = document.getElementById("canvas");
+
+const startButton =
+    document.getElementById("startCamera");
+
+const scanButton =
+    document.getElementById("scanFace");
+
+const stopButton =
+    document.getElementById("stopCamera");
+
+const statusBox =
+    document.getElementById("status");
+
+const resultBox =
+    document.getElementById("result");
+
+
+let cameraStream = null;
+
+
+function setStatus(
+    message,
+    type = "info"
+) {
+
+    statusBox.className =
+        `alert alert-${type} mt-4 text-center`;
+
+    statusBox.textContent = message;
+}
+
+
+function startCamera() {
+
+    navigator.mediaDevices.getUserMedia({
+        video: {
+            width: {
+                ideal: 1280
+            },
+            height: {
+                ideal: 720
+            },
+            facingMode: "user"
+        },
+        audio: false
+    })
+    .then(stream => {
+
+        cameraStream = stream;
+
+        video.srcObject = cameraStream;
+
+        startButton.disabled = true;
+
+        scanButton.disabled = false;
+
+        stopButton.disabled = false;
+
+        setStatus(
+            "Camera is ready. Position one face in the camera.",
+            "success"
+        );
+
+    })
+    .catch(error => {
+
+        console.error(error);
+
+        setStatus(
+            "Could not access the camera. Please allow camera permission.",
+            "danger"
+        );
+
+    });
+}
+
+
+function stopCamera() {
+
+    if (cameraStream) {
+
+        cameraStream
+            .getTracks()
+            .forEach(
+                track => track.stop()
+            );
+
+        cameraStream = null;
+    }
+
+
+    video.srcObject = null;
+
+
+    startButton.disabled = false;
+
+    scanButton.disabled = true;
+
+    stopButton.disabled = true;
+
+
+    setStatus(
+        "Camera stopped.",
+        "secondary"
+    );
+
+}
+
+
+async function scanFace() {
+
+    if (!cameraStream) {
+
+        setStatus(
+            "Please start the camera first.",
+            "warning"
+        );
+
+        return;
+    }
+
+
+    if (
+        video.videoWidth === 0 ||
+        video.videoHeight === 0
+    ) {
+
+        setStatus(
+            "Camera is not ready yet. Please wait.",
+            "warning"
+        );
+
+        return;
+    }
+
+
+    canvas.width = video.videoWidth;
+
+    canvas.height = video.videoHeight;
+
+
+    const context =
+        canvas.getContext("2d");
+
+
+    context.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    const imageData =
+        canvas.toDataURL(
+            "image/jpeg",
+            0.90
+        );
+
+
+    scanButton.disabled = true;
+
+    resultBox.style.display = "none";
+
+
+    setStatus(
+        "Scanning face and comparing with registered students...",
+        "info"
+    );
+
+
+    try {
+
+        const formData =
+            new FormData();
+
+
+        formData.append(
+            "image",
+            imageData
+        );
+
+
+        const response =
+            await fetch(
+                "{{ url_for(
+                    'attendance.attendance_scanner',
+                    session_id=session.id
+                ) }}",
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
+
+
+        const result =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            setStatus(
+                result.message ||
+                "Attendance scan failed.",
+                "danger"
+            );
+
+            return;
+        }
+
+
+        resultBox.style.display =
+            "block";
+
+
+        if (
+            result.matched &&
+            result.already_marked
+        ) {
+
+            setStatus(
+                result.message,
+                "warning"
+            );
+
+
+            resultBox.className =
+                "alert alert-warning text-center";
+
+
+            resultBox.innerHTML = `
+
+                <strong>
+                    Already Marked
+                </strong>
+
+                <br>
+
+                Student:
+                ${result.student_name}
+
+                <br>
+
+                Roll Number:
+                ${result.roll_number}
+
+                <br>
+
+                Similarity:
+                ${result.similarity}
+
+                <br>
+
+                Status:
+                ${result.status}
+
+            `;
+
+        }
+        else if (
+            result.matched &&
+            !result.already_marked
+        ) {
+
+            setStatus(
+                result.message,
+                "success"
+            );
+
+
+            resultBox.className =
+                "alert alert-success text-center";
+
+
+            resultBox.innerHTML = `
+
+                <strong>
+                    ✓ ATTENDANCE MARKED
+                </strong>
+
+                <br>
+
+                Student:
+                ${result.student_name}
+
+                <br>
+
+                Roll Number:
+                ${result.roll_number}
+
+                <br>
+
+                Similarity:
+                ${result.similarity}
+
+                <br>
+
+                Status:
+                Present
+
+            `;
+
+        }
+        else {
+
+            setStatus(
+                result.message,
+                "danger"
+            );
+
+
+            resultBox.className =
+                "alert alert-danger text-center";
+
+
+            resultBox.innerHTML = `
+
+                <strong>
+                    Unknown Face
+                </strong>
+
+                <br>
+
+                Best Similarity:
+                ${result.similarity}
+
+                <br>
+
+                Required Threshold:
+                ${result.threshold}
+
+            `;
+
+        }
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        setStatus(
+            "Something went wrong during attendance scanning.",
+            "danger"
+        );
+
+    }
+    finally {
+
+        scanButton.disabled = false;
+
+    }
+
+}
+
+
+startButton.addEventListener(
+    "click",
+    startCamera
+);
+
+
+scanButton.addEventListener(
+    "click",
+    scanFace
+);
+
+
+stopButton.addEventListener(
+    "click",
+    stopCamera
+);
+
+
+window.addEventListener(
+    "beforeunload",
+    () => {
+
+        if (cameraStream) {
+
+            cameraStream
+                .getTracks()
+                .forEach(
+                    track => track.stop()
+                );
+
+        }
+
+    }
+);
+
+</script>
+
+{% endblock %}
