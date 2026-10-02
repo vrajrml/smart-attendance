@@ -6,9 +6,16 @@ import cv2
 import numpy as np
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required
+from sqlalchemy import or_
 
 from app import db
-from app.models import Attendance, ClassSession, FaceEncoding, Student
+from app.models import (
+    Attendance,
+    ClassSession,
+    FaceEncoding,
+    Student,
+    Subject,
+)
 from app.services.face_recognition import face_service
 
 
@@ -25,6 +32,7 @@ MATCHING_THRESHOLD = 0.363
 @attendance_bp.route("/")
 @login_required
 def list_attendance_sessions():
+
     sessions = db.session.execute(
         db.select(ClassSession)
         .order_by(
@@ -42,18 +50,62 @@ def list_attendance_sessions():
 @attendance_bp.route("/history")
 @login_required
 def attendance_history():
+    """
+    Display attendance history with optional filters.
 
-    from_date = request.args.get("from_date", "").strip()
-    to_date = request.args.get("to_date", "").strip()
-    student_id = request.args.get("student_id", "").strip()
-    subject_id = request.args.get("subject_id", "").strip()
-    status = request.args.get("status", "").strip()
+    Filters:
+    - Student: name, roll number, or email
+    - Subject
+    - Date
+    - Status
+
+    If no filters are supplied, all attendance records are shown.
+    """
+
+    student_search = request.args.get(
+        "student",
+        ""
+    ).strip()
+
+    subject_value = request.args.get(
+        "subject",
+        ""
+    ).strip()
+
+    selected_date = request.args.get(
+        "date",
+        ""
+    ).strip()
+
+    selected_status = request.args.get(
+        "status",
+        ""
+    ).strip()
+
+    # ---------------------------------------------------------
+    # Base query
+    # ---------------------------------------------------------
+    #
+    # Explicitly join the related tables so that the query
+    # matches the relationships used by the History template.
+    #
+    # With no filters, this returns every attendance record.
+    # ---------------------------------------------------------
 
     query = (
         db.select(Attendance)
-        .join(Attendance.student)
-        .join(Attendance.session)
-        .join(ClassSession.subject)
+        .join(
+            Student,
+            Attendance.student_id == Student.id
+        )
+        .join(
+            ClassSession,
+            Attendance.session_id == ClassSession.id
+        )
+        .join(
+            Subject,
+            ClassSession.subject_id == Subject.id
+        )
         .order_by(
             ClassSession.session_date.desc(),
             ClassSession.start_time.desc(),
@@ -61,69 +113,117 @@ def attendance_history():
         )
     )
 
-    if from_date:
-        try:
-            from_date_value = date.fromisoformat(from_date)
-            query = query.where(
-                ClassSession.session_date >= from_date_value
-            )
-        except ValueError:
-            from_date = ""
+    # ---------------------------------------------------------
+    # Student search
+    # ---------------------------------------------------------
 
-    if to_date:
-        try:
-            to_date_value = date.fromisoformat(to_date)
-            query = query.where(
-                ClassSession.session_date <= to_date_value
-            )
-        except ValueError:
-            to_date = ""
+    if student_search:
 
-    if student_id:
-        try:
-            query = query.where(
-                Attendance.student_id == int(student_id)
-            )
-        except ValueError:
-            student_id = ""
+        search_pattern = f"%{student_search}%"
 
-    if subject_id:
-        try:
-            query = query.where(
-                ClassSession.subject_id == int(subject_id)
-            )
-        except ValueError:
-            subject_id = ""
-
-    if status in {"present", "late", "absent"}:
         query = query.where(
-            Attendance.status == status
+            or_(
+                Student.name.ilike(search_pattern),
+                Student.roll_number.ilike(search_pattern),
+                Student.email.ilike(search_pattern)
+            )
         )
-    else:
-        status = ""
 
-    records = db.session.execute(query).scalars().all()
+    # ---------------------------------------------------------
+    # Subject filter
+    # ---------------------------------------------------------
+
+    if subject_value:
+
+        try:
+
+            subject_id = int(subject_value)
+
+            query = query.where(
+                ClassSession.subject_id == subject_id
+            )
+
+        except ValueError:
+
+            subject_value = ""
+
+    # ---------------------------------------------------------
+    # Date filter
+    # ---------------------------------------------------------
+
+    if selected_date:
+
+        try:
+
+            selected_date_value = date.fromisoformat(
+                selected_date
+            )
+
+            query = query.where(
+                ClassSession.session_date == selected_date_value
+            )
+
+        except ValueError:
+
+            selected_date = ""
+
+    # ---------------------------------------------------------
+    # Status filter
+    # ---------------------------------------------------------
+
+    if selected_status not in {
+        "present",
+        "late",
+        "absent"
+    }:
+
+        selected_status = ""
+
+    else:
+
+        query = query.where(
+            Attendance.status == selected_status
+        )
+
+    # ---------------------------------------------------------
+    # Execute query
+    # ---------------------------------------------------------
+
+    attendance_records = db.session.execute(
+        query
+    ).scalars().all()
+
+    # ---------------------------------------------------------
+    # Filter dropdown data
+    # ---------------------------------------------------------
 
     students = db.session.execute(
-        db.select(Student).order_by(Student.roll_number)
+        db.select(Student)
+        .order_by(Student.roll_number)
     ).scalars().all()
-
-    from app.models import Subject
 
     subjects = db.session.execute(
-        db.select(Subject).order_by(Subject.subject_code)
+        db.select(Subject)
+        .order_by(Subject.subject_code)
     ).scalars().all()
+
+    # ---------------------------------------------------------
+    # Render History page
+    # ---------------------------------------------------------
 
     return render_template(
         "attendance/history.html",
-        records=records,
+        attendance_records=attendance_records,
         students=students,
         subjects=subjects,
-        from_date=from_date,
-        to_date=to_date,
-        student_id=student_id,
-        subject_id=subject_id,
-        status=status
+        student_search=student_search,
+        selected_subject=(
+            int(subject_value)
+            if subject_value.isdigit()
+            else ""
+        ),
+        selected_date=selected_date,
+        selected_status=selected_status
     )
 
 
@@ -148,8 +248,11 @@ def attendance_scanner(session_id):
             "Attendance for this session has already been finalized and locked.",
             "warning"
         )
+
         return redirect(
-            url_for("attendance.list_attendance_sessions")
+            url_for(
+                "attendance.list_attendance_sessions"
+            )
         )
 
     if session.session_status == "upcoming":
@@ -158,8 +261,11 @@ def attendance_scanner(session_id):
             "Attendance scanning will become available when the session starts.",
             "info"
         )
+
         return redirect(
-            url_for("attendance.list_attendance_sessions")
+            url_for(
+                "attendance.list_attendance_sessions"
+            )
         )
 
     if session.session_status == "ended":
@@ -169,8 +275,12 @@ def attendance_scanner(session_id):
             "Use Manage to review attendance.",
             "warning"
         )
+
         return redirect(
-            url_for("attendance.manage_attendance", session_id=session.id)
+            url_for(
+                "attendance.manage_attendance",
+                session_id=session.id
+            )
         )
 
     # ---------------------------------------------------------
@@ -178,6 +288,7 @@ def attendance_scanner(session_id):
     # ---------------------------------------------------------
 
     if request.method == "GET":
+
         return render_template(
             "attendance/scanner.html",
             session=session
@@ -187,17 +298,25 @@ def attendance_scanner(session_id):
     # POST - Face Scanner
     # ---------------------------------------------------------
 
-    image_data = request.form.get("image", "").strip()
+    image_data = request.form.get(
+        "image",
+        ""
+    ).strip()
 
     if not image_data:
+
         return {
             "success": False,
             "message": "No image was received."
         }, 400
 
     try:
+
         if "," in image_data:
-            image_data = image_data.split(",", 1)[1]
+            image_data = image_data.split(
+                ",",
+                1
+            )[1]
 
         image_bytes = base64.b64decode(
             image_data,
@@ -205,6 +324,7 @@ def attendance_scanner(session_id):
         )
 
     except (ValueError, binascii.Error):
+
         return {
             "success": False,
             "message": "Invalid image data."
@@ -221,33 +341,47 @@ def attendance_scanner(session_id):
     )
 
     if image is None:
+
         return {
             "success": False,
             "message": "Unable to process the image."
         }, 400
 
-    faces = face_service.detect_faces(image)
+    faces = face_service.detect_faces(
+        image
+    )
 
     if len(faces) == 0:
+
         return {
             "success": False,
-            "message": "No face detected. Please position your face clearly in the camera."
+            "message": (
+                "No face detected. "
+                "Please position your face clearly in the camera."
+            )
         }, 400
 
     if len(faces) > 1:
+
         return {
             "success": False,
-            "message": "Multiple faces detected. Please make sure only one person is in the camera."
+            "message": (
+                "Multiple faces detected. "
+                "Please make sure only one person is in the camera."
+            )
         }, 400
 
     face = faces[0]
 
     try:
+
         new_embedding = face_service.generate_embedding(
             image,
             face
         )
+
     except Exception:
+
         return {
             "success": False,
             "message": "Unable to generate a face embedding."
@@ -259,9 +393,12 @@ def attendance_scanner(session_id):
     ).scalars().all()
 
     if not registered_faces:
+
         return {
             "success": False,
-            "message": "No registered student faces are available."
+            "message": (
+                "No registered student faces are available."
+            )
         }, 400
 
     best_student = None
@@ -270,24 +407,33 @@ def attendance_scanner(session_id):
     for face_encoding in registered_faces:
 
         try:
+
             score = face_service.compare_embeddings(
                 face_encoding.encoding,
                 new_embedding
             )
+
         except Exception:
+
             continue
 
         if score > best_score:
+
             best_score = score
             best_student = face_encoding.student
 
     if best_student is None:
+
         return {
             "success": False,
-            "message": "Face could not be matched with a registered student."
+            "message": (
+                "Face could not be matched "
+                "with a registered student."
+            )
         }, 400
 
     if best_score < MATCHING_THRESHOLD:
+
         return {
             "success": False,
             "message": (
@@ -304,6 +450,7 @@ def attendance_scanner(session_id):
     ).scalar_one_or_none()
 
     if existing_attendance:
+
         return {
             "success": False,
             "message": (
@@ -316,16 +463,22 @@ def attendance_scanner(session_id):
         student_id=best_student.id,
         session_id=session.id,
         status="present",
-        confidence=round(best_score, 4)
+        confidence=round(
+            best_score,
+            4
+        )
     )
 
-    db.session.add(attendance)
+    db.session.add(
+        attendance
+    )
+
     db.session.commit()
 
     return {
         "success": True,
         "message": (
-            f"Attendance marked successfully for "
+            "Attendance marked successfully for "
             f"{best_student.name}."
         ),
         "student": {
@@ -333,7 +486,10 @@ def attendance_scanner(session_id):
             "name": best_student.name,
             "roll_number": best_student.roll_number
         },
-        "confidence": round(best_score, 4)
+        "confidence": round(
+            best_score,
+            4
+        )
     }
 
 
@@ -350,7 +506,8 @@ def manage_attendance(session_id):
     )
 
     students = db.session.execute(
-        db.select(Student).order_by(Student.roll_number)
+        db.select(Student)
+        .order_by(Student.roll_number)
     ).scalars().all()
 
     existing_records = db.session.execute(
@@ -371,10 +528,12 @@ def manage_attendance(session_id):
     if request.method == "POST":
 
         if session.attendance_finalized:
+
             flash(
                 "Attendance for this session has already been finalized and locked.",
                 "warning"
             )
+
             return redirect(
                 url_for(
                     "attendance.manage_attendance",
@@ -383,11 +542,13 @@ def manage_attendance(session_id):
             )
 
         if session.session_status == "upcoming":
+
             flash(
                 "This class session has not started yet. "
                 "Attendance cannot be marked before the session starts.",
                 "warning"
             )
+
             return redirect(
                 url_for(
                     "attendance.manage_attendance",
@@ -407,20 +568,29 @@ def manage_attendance(session_id):
                 "late",
                 "absent"
             }:
+
                 status = "absent"
 
-            record = attendance_by_student.get(student.id)
+            record = attendance_by_student.get(
+                student.id
+            )
 
             if record:
+
                 record.status = status
+
             else:
+
                 record = Attendance(
                     student_id=student.id,
                     session_id=session.id,
                     status=status,
                     confidence=None
                 )
-                db.session.add(record)
+
+                db.session.add(
+                    record
+                )
 
         db.session.commit()
 
@@ -457,10 +627,12 @@ def finalize_attendance(session_id):
     )
 
     if session.attendance_finalized:
+
         flash(
             "Attendance for this session is already finalized.",
             "info"
         )
+
         return redirect(
             url_for(
                 "attendance.manage_attendance",
@@ -470,10 +642,12 @@ def finalize_attendance(session_id):
 
     # Attendance should only be finalized after the class ends.
     if session.session_status != "ended":
+
         flash(
             "Attendance can only be finalized after the class session has ended.",
             "warning"
         )
+
         return redirect(
             url_for(
                 "attendance.manage_attendance",
@@ -482,7 +656,8 @@ def finalize_attendance(session_id):
         )
 
     students = db.session.execute(
-        db.select(Student).order_by(Student.roll_number)
+        db.select(Student)
+        .order_by(Student.roll_number)
     ).scalars().all()
 
     existing_records = db.session.execute(
